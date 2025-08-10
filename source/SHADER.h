@@ -12,6 +12,8 @@
 #include <sstream>
 #include <iostream>
 
+#include "glm/fwd.hpp"
+
 class Shader
 {
 public:
@@ -23,6 +25,7 @@ public:
     // use/activate the shader
     void use();
     // utility uniform functions
+    void setMat4fv(const std::string name, glm::mat4 matrix) const;
     void setUniform4f(const std::string &name, float a, float b, float c, float d) const;
     void setBool(const std::string &name, bool value) const;
     void setInt(const std::string &name, int value) const;

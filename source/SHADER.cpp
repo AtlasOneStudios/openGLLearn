@@ -3,6 +3,8 @@
 //
 #include "SHADER.h"
 
+#include "glm/gtc/type_ptr.hpp"
+
 Shader::Shader(const char* vertexPath, const char* fragmentPath) {
     // 1. retrieve the vertex/fragment source code from filePath
     std::string vertexCode;
@@ -84,6 +86,11 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath) {
 void Shader::use()
 {
     glUseProgram(ID);
+}
+
+void Shader::setMat4fv(const std::string name, glm::mat4 matrix) const
+{
+    glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, glm::value_ptr(matrix));
 }
 
 void Shader::setUniform4f(const std::string &name, float a, float b, float c, float d) const
