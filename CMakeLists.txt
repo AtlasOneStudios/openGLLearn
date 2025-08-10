@@ -8,6 +8,8 @@ find_package(OpenGL REQUIRED)
 INCLUDE_DIRECTORIES(libraries/ libraries/GLFW/include/ )
 LINK_DIRECTORIES(libraries/GLFW/lib/)
 
-add_executable(openGLLearn source/main.cpp libraries/glad/glad.c)
+add_executable(openGLLearn source/main.cpp libraries/glad/glad.c
+        source/SHADER.h
+        source/SHADER.cpp)
 
 target_link_libraries(openGLLearn libglfw3.a ${OPENGL_LIBRARIES})
