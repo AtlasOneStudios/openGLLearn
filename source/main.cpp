@@ -5,9 +5,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "SHADER.h"
-
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
+#include "TEXTURE.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -53,30 +51,8 @@ int main() {
     Shader defaultShader("../resources/shaders/vertex.vs", "../resources/shaders/fragment.fs");
     defaultShader.use();
 
-
-    int width, height, nrChannels;
-    stbi_set_flip_vertically_on_load(true);
-    unsigned char *data = stbi_load("../resources/textures/awesomeface.png", &width, &height, &nrChannels, 0);
-
-    unsigned int texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    if (data)
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else
-    {
-        std::cout << "Failed to load texture" << std::endl;
-    }
-    stbi_image_free(data);
+    Texture defaultTexture("../resources/textures/awesomeface.png", GL_REPEAT, GL_REPEAT, GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR);
+    defaultTexture.use(0);
 
     unsigned int VAO;
     glGenVertexArrays(1, &VAO);
@@ -116,7 +92,6 @@ int main() {
 
     while(!glfwWindowShouldClose(window))
     {
-        std::cout << glGetError() << std::endl;
         processInput(window);
 
         glClearColor(0.f, 0.f, 0.f, 0.0f);

@@ -11,6 +11,8 @@ LINK_DIRECTORIES(libraries/GLFW/lib/)
 add_executable(openGLLearn source/main.cpp libraries/glad/glad.c
         source/SHADER.h
         source/SHADER.cpp
-        libraries/stb_image.h)
+        libraries/stb_image.h
+        source/TEXTURE.cpp
+        source/TEXTURE.h)
 
 target_link_libraries(openGLLearn libglfw3.a ${OPENGL_LIBRARIES})
