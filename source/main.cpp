@@ -60,7 +60,7 @@ void processInput(GLFWwindow *window)
 {
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_NORMAL) glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-    const float cameraSpeed = 2.5f * deltaTime;
+    const float cameraSpeed = 10.f * deltaTime;
     if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         if (fullscreen == true) {
             glfwSetWindowMonitor(window, NULL, 100, 100, 800, 600, GLFW_DONT_CARE);
@@ -93,8 +93,8 @@ void processInput(GLFWwindow *window)
                     break;
             }
         }
-        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && _CAM->cameraPos.y-1 <= 0.f) {
-            velocity.y += 7.5f;
+        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && _CAM->cameraPos.y <= -1.f) {
+            velocity.y += 3.13 * 2;
         }
 
     //_CAM->cameraPos.y = 0.0f;
@@ -141,6 +141,7 @@ int main() {
     Shader lightShader("../resources/shaders/lightVertex.vs", "../resources/shaders/lightFragment.fs");
 
     Texture defaultTexture("../resources/textures/defaultTexture.png", GL_REPEAT, GL_REPEAT, GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR);
+    Texture awesome("../resources/textures/awesomeface.png", GL_REPEAT, GL_REPEAT, GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR);
     Texture defaultSpecular("../resources/textures/defaultSpecular.png", GL_REPEAT, GL_REPEAT, GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR);
 
     defaultTexture.use(0);
@@ -223,6 +224,81 @@ int main() {
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
 
+    unsigned int sVAO;
+    glGenVertexArrays(1, &sVAO);
+    glBindVertexArray(sVAO);
+
+    float skyVertices[] = {
+        // positions          // normals           // texture coords
+        ///back face
+        0.5f,  0.5f, -0.5f,   0.0f, 0.0f, -1.0f,   100.0f, 100.0f,   // top right
+        0.5f, -0.5f, -0.5f,   0.0f, 0.0f, -1.0f,   100.0f, 0.0f,   // bottom right
+       -0.5f, -0.5f, -0.5f,   0.0f, 0.0f, -1.0f,   0.0f, 0.0f,   // bottom left
+       -0.5f,  0.5f, -0.5f,   0.0f, 0.0f, -1.0f,   0.0f, 100.0f,   // top left
+        ///front face
+        0.5f,  0.5f, 0.5f,   0.0f, 0.0f, 1.0f,   100.0f, 100.0f,   // top right
+        0.5f, -0.5f, 0.5f,   0.0f, 0.0f, 1.0f,   100.0f, 0.0f,   // bottom right
+       -0.5f, -0.5f, 0.5f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // bottom left
+       -0.5f,  0.5f, 0.5f,   0.0f, 0.0f, 1.0f,   0.0f, 100.0f,    // top left
+        ///left face
+        -0.5f,  0.5f, 0.5f,   -1.0f, 0.0f, 0.0f,   100.0f, 100.0f,   // top right
+        -0.5f, -0.5f, 0.5f,   -1.0f, 0.0f, 0.0f,   100.0f, 0.0f,   // bottom right
+       -0.5f, -0.5f, -0.5f,   -1.0f, 0.0f, 0.0f,   000.0f, 0.0f,   // bottom left
+       -0.5f,  0.5f, -0.5f,   -1.0f, 0.0f, 0.0f,   0.0f, 100.0f,    // top left
+        ///right face
+        0.5f,  0.5f, 0.5f,    1.0f, 0.0f, 0.0f,   100.0f, 100.0f,   // top right
+        0.5f, -0.5f, 0.5f,    1.0f, 0.0f, 0.0f,   100.0f, 0.0f,   // bottom right
+        0.5f, -0.5f, -0.5f,   1.0f, 0.0f, 0.0f,   0.0f, 0.0f,   // bottom left
+        0.5f,  0.5f, -0.5f,   1.0f, 0.0f, 0.0f,   0.0f, 100.0f,    // top left
+        ///bottom
+        0.5f, -0.5f, 0.5f,   0.0f, -1.0f, 0.0f,   100.0f, 100.0f,   // top right
+        0.5f, -0.5f, -0.5f,  0.0f, -1.0f, 0.0f,   100.0f, 0.0f,   // bottom right
+       -0.5f, -0.5f, -0.5f,  0.0f, -1.0f, 0.0f,   0.0f, 0.0f,   // bottom left
+       -0.5f, -0.5f, 0.5f,   0.0f, -1.0f, 0.0f,   0.0f, 100.0f,   // top left
+        ///top
+        0.5f, 0.5f, 0.5f,   0.0f, 1.0f, 0.0f,   100.0f, 100.0f,   // top right
+        0.5f, 0.5f, -0.5f,  0.0f, 1.0f, 0.0f,   100.0f, 0.0f,   // bottom right
+       -0.5f, 0.5f, -0.5f,  0.0f, 1.0f, 0.0f,   0.0f, 0.0f,   // bottom left
+       -0.5f, 0.5f, 0.5f,   0.0f, 1.0f, 0.0f,   0.0f, 100.0f   // top left
+    };
+    unsigned int skyIndicies[] = {
+        //back
+        0, 1, 3,
+        1, 2, 3,
+        //front
+        4, 5, 7,
+        5, 6, 7,
+        //left
+        8, 9, 11,
+        9, 10, 11,
+        //right
+        12, 13, 15,
+        13, 14, 15,
+        //bottom
+        16, 17, 19,
+        17, 18, 19,
+        //top
+        20, 21, 23,
+        21, 22, 23,
+    };
+    unsigned int sVBO;
+    glGenBuffers(1, &sVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, sVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyVertices), skyVertices, GL_STATIC_DRAW);
+    unsigned int sEBO;
+    glGenBuffers(1, &sEBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, sEBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(skyIndicies), skyIndicies, GL_STATIC_READ);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3*sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+
     glEnable(GL_DEPTH_TEST);
 
     static Camera camera;
@@ -237,15 +313,20 @@ int main() {
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        velocity -= glm::vec3(0.0f, 0.2f, 0.0f);
+        velocity -= glm::vec3(0.0f, 9.8f/60, 0.0f);
         camera.cameraPos += velocity * deltaTime;
 
-        if (camera.cameraPos.y  <= 1) {velocity = glm::vec3(0.0f, 0.0f, 0.0f); camera.cameraPos.y = 1;}
+        if (camera.cameraPos.y  <= -1) {velocity = glm::vec3(0.0f, 0.0f, 0.0f); camera.cameraPos.y = -1;}
 
         processInput(window);
 
         glClearColor(.0f, .0f, .0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glBindVertexArray(VAO);
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        awesome.use();
 
         //moves object to world space
         glm::mat4 model = glm::mat4(1.0f);
@@ -332,6 +413,21 @@ int main() {
         lightShader.setMat4fv("viewMatrix", camera.getView());
         lightShader.setMat4fv("projectionMatrix", projection);
         lightShader.setVec3("lightColor", glm::vec3(1.f, 0.f, 0.0f));
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+
+        defaultTexture.use(0);
+        glBindVertexArray(sVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, sVBO);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, sEBO);
+        defaultShader.use();
+        defaultShader.setVec3f("pointLights[0].ambient", 0.1f, 0.1f, 0.1f);
+        defaultShader.setVec3f("pointLights[0].diffuse", .5f, 0.5f, 0.5f);
+        defaultShader.setFloat("pointLights[0].linear", .0f);
+        defaultShader.setFloat("pointLights[0].quadratic", 0.f);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.0f, 47.0f, 0.0f));
+        model = glm::scale(model, glm::vec3(100.f));
+        defaultShader.setMat4fv("modelMatrix", model);
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
         glfwPollEvents();
