@@ -13,6 +13,7 @@ add_executable(openGLLearn source/main.cpp libraries/glad/glad.c
         source/SHADER.cpp
         libraries/stb_image.h
         source/TEXTURE.cpp
-        source/TEXTURE.h)
+        source/TEXTURE.h
+        source/CAMERA.h)
 
 target_link_libraries(openGLLearn libglfw3.a ${OPENGL_LIBRARIES})
