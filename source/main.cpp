@@ -54,6 +54,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 static float deltaTime;
 static GLFWmonitor* monitor;
 static bool fullscreen = false;
+static glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 
 void processInput(GLFWwindow *window)
 {
@@ -70,26 +71,32 @@ void processInput(GLFWwindow *window)
             firstMouse = true;
         }
     }
-    if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        _CAM->cameraPos += cameraSpeed * _CAM->cameraFront;
-    if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        _CAM->cameraPos -= cameraSpeed * _CAM->cameraFront;
-    if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        _CAM->cameraPos -= cameraSpeed * glm::normalize(glm::cross(_CAM->cameraFront, _CAM->cameraUp));
-    if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        _CAM->cameraPos += cameraSpeed * glm::normalize(glm::cross(_CAM->cameraFront, _CAM->cameraUp));
-    if(glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-        _CAM->cameraPos += cameraSpeed * _CAM->cameraUp;
-    if(glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-        _CAM->cameraPos -= cameraSpeed * _CAM->cameraUp;
-    if (glfwGetKey(window, GLFW_KEY_F11) == GLFW_PRESS)
-        switch (fullscreen) {
-            case false:
-                glfwSetWindowMonitor(window, monitor, 0, 0, 1920, 1080, GLFW_DONT_CARE); //lol me neither
-                fullscreen = !fullscreen;
-            case true:
-                break;
+
+        if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+            _CAM->cameraPos += cameraSpeed * glm::vec3(cos(glm::radians(_CAM->yaw)), 0, sin(glm::radians(_CAM->yaw)));
+        if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+            _CAM->cameraPos -= cameraSpeed * glm::vec3(cos(glm::radians(_CAM->yaw)), 0, sin(glm::radians(_CAM->yaw)));
+        if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+            _CAM->cameraPos -= cameraSpeed * glm::normalize(glm::cross(_CAM->cameraFront, _CAM->cameraUp));
+        if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+            _CAM->cameraPos += cameraSpeed * glm::normalize(glm::cross(_CAM->cameraFront, _CAM->cameraUp));
+        if(glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+            _CAM->cameraPos += cameraSpeed * _CAM->cameraUp;
+        if(glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+            _CAM->cameraPos -= cameraSpeed * _CAM->cameraUp;
+        if (glfwGetKey(window, GLFW_KEY_F11) == GLFW_PRESS) {
+            switch (fullscreen) {
+                case false:
+                    glfwSetWindowMonitor(window, monitor, 0, 0, 1920, 1080, GLFW_DONT_CARE); //lol me neither
+                    fullscreen = !fullscreen;
+                case true:
+                    break;
+            }
         }
+        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && _CAM->cameraPos.y-1 <= 0.f) {
+            velocity.y += 7.5f;
+        }
+
     //_CAM->cameraPos.y = 0.0f;
 
     _CAM->updateDirection();
@@ -219,6 +226,7 @@ int main() {
     glEnable(GL_DEPTH_TEST);
 
     static Camera camera;
+    camera.cameraPos = glm::vec3(0.0f, 3.0f, 0.0f);
     _CAM = &camera;
 
     //glfwSwapInterval(0);
@@ -228,6 +236,11 @@ int main() {
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
+
+        velocity -= glm::vec3(0.0f, 0.2f, 0.0f);
+        camera.cameraPos += velocity * deltaTime;
+
+        if (camera.cameraPos.y  <= 1) {velocity = glm::vec3(0.0f, 0.0f, 0.0f); camera.cameraPos.y = 1;}
 
         processInput(window);
 
@@ -283,6 +296,14 @@ int main() {
         defaultShader.setVec3f("pointLights[1].diffuse", 0.8f, 0.7f, 0.0f);
         defaultShader.setVec3f("pointLights[1].specular", 1.0f, 1.0f, 0.0f);
 
+        defaultShader.setVec3f("pointLights[2].position", 0.0f, -2.0f, 0.0f);
+        defaultShader.setFloat("pointLights[2].constant",  1.0f);
+        defaultShader.setFloat("pointLights[2].linear",    0.09f);
+        defaultShader.setFloat("pointLights[2].quadratic", 0.032f);
+        defaultShader.setVec3f("pointLights[2].ambient", 0.3f, 0.0f, 0.0f);
+        defaultShader.setVec3f("pointLights[2].diffuse", 0.8f, 0.0f, 0.0f);
+        defaultShader.setVec3f("pointLights[2].specular", 1.0f, 0.0f, 0.0f);
+
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
         lightShader.use();
@@ -301,7 +322,16 @@ int main() {
         lightShader.setMat4fv("modelMatrix", model);
         lightShader.setMat4fv("viewMatrix", camera.getView());
         lightShader.setMat4fv("projectionMatrix", projection);
-        lightShader.setVec3("lightColor", glm::vec3(0.8f, 1.7f, 0.0f));
+        lightShader.setVec3("lightColor", glm::vec3(0.8f, 0.7f, 0.0f));
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.0f, -2.0f, 0.0f));
+        model = glm::scale(model, glm::vec3(0.5f));
+        lightShader.setMat4fv("modelMatrix", model);
+        lightShader.setMat4fv("viewMatrix", camera.getView());
+        lightShader.setMat4fv("projectionMatrix", projection);
+        lightShader.setVec3("lightColor", glm::vec3(1.f, 0.f, 0.0f));
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
         glfwPollEvents();
