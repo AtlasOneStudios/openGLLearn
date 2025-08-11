@@ -25,8 +25,11 @@ public:
     // use/activate the shader
     void use();
     // utility uniform functions
-    void setMat4fv(const std::string name, glm::mat4 matrix) const;
-    void setUniform4f(const std::string &name, float a, float b, float c, float d) const;
+    void setMat4fv(const std::string &name, glm::mat4 matrix) const;
+    void setVec4(const std::string &name, glm::vec4 vector) const;
+    void setVec4f(const std::string &name, float a, float b, float c, float d) const;
+    void setVec3(const std::string &name, const glm::vec3 &vector) const;
+    void setVec3f(const std::string &name, float a, float b, float c) const;
     void setBool(const std::string &name, bool value) const;
     void setInt(const std::string &name, int value) const;
     void setFloat(const std::string &name, float value) const;

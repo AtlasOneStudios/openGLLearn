@@ -1,4 +1,5 @@
 #include <cmath>
+#include <complex>
 #include <iostream>
 #include <ostream>
 
@@ -13,15 +14,82 @@
 
 #include "CAMERA.h"
 
+static float aspect = 800.f / 600.f;
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     glViewport(0, 0, width, height);
+    aspect = (float)width / height;
 }
+
+static Camera* _CAM;
+static double lastXpos, lastYpos;
+static bool firstMouse = true;
+void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
+    if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_NORMAL) return;
+
+    const float sensitivity = 0.1f;
+    if (firstMouse) {
+        firstMouse = false;
+        lastXpos = xpos;
+        lastYpos = ypos;
+        return;
+    }
+    double xOffset = xpos - lastXpos;
+    double yOffset = lastYpos - ypos;
+
+    _CAM->yaw += xOffset * sensitivity;
+    _CAM->pitch += yOffset * sensitivity;
+    _CAM->updateDirection();
+
+    if (_CAM->pitch > 89.9f) _CAM->pitch = 89.89f;
+    if (_CAM->pitch < -89.9f) _CAM->pitch = -89.9f;
+
+    lastXpos = xpos;
+    lastYpos = ypos;
+}
+
+static float deltaTime;
+static GLFWmonitor* monitor;
+static bool fullscreen = false;
 
 void processInput(GLFWwindow *window)
 {
-    if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_NORMAL) glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+    const float cameraSpeed = 2.5f * deltaTime;
+    if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+        if (fullscreen == true) {
+            glfwSetWindowMonitor(window, NULL, 100, 100, 808, 600, GLFW_DONT_CARE);
+            fullscreen = !fullscreen;
+        } else {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            glfwSetCursorPos(window, 0, 0);
+            firstMouse = true;
+        }
+    }
+    if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        _CAM->cameraPos += cameraSpeed * _CAM->cameraFront;
+    if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        _CAM->cameraPos -= cameraSpeed * _CAM->cameraFront;
+    if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        _CAM->cameraPos -= cameraSpeed * glm::normalize(glm::cross(_CAM->cameraFront, _CAM->cameraUp));
+    if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        _CAM->cameraPos += cameraSpeed * glm::normalize(glm::cross(_CAM->cameraFront, _CAM->cameraUp));
+    if(glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+        _CAM->cameraPos += cameraSpeed * _CAM->cameraUp;
+    if(glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+        _CAM->cameraPos -= cameraSpeed * _CAM->cameraUp;
+    if (glfwGetKey(window, GLFW_KEY_F11) == GLFW_PRESS)
+        switch (fullscreen) {
+            case false:
+                glfwSetWindowMonitor(window, monitor, 0, 0, 1920, 1080, GLFW_DONT_CARE); //lol me neither
+                fullscreen = !fullscreen;
+            case true:
+                break;
+        }
+    //_CAM->cameraPos.y = 0.0f;
+
+    _CAM->updateDirection();
 }
 
 int main() {
@@ -36,7 +104,7 @@ int main() {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     GLFWwindow* window = glfwCreateWindow(800, 600, "title", NULL, NULL);
-    glfwSetWindowPos(window, 1000, 700);
+    monitor = glfwGetPrimaryMonitor();
     if (window == nullptr)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -45,6 +113,8 @@ int main() {
     }
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetCursorPosCallback(window, mouse_callback);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
@@ -58,45 +128,50 @@ int main() {
     Shader defaultShader("../resources/shaders/vertex.vs", "../resources/shaders/fragment.fs");
     defaultShader.use();
 
-    Texture defaultTexture("../resources/textures/awesomeface.png", GL_REPEAT, GL_REPEAT, GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR);
+    Shader lightShader("../resources/shaders/lightVertex.vs", "../resources/shaders/lightFragment.fs");
+
+    Texture defaultTexture("../resources/textures/defaultTexture.png", GL_REPEAT, GL_REPEAT, GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR);
+    Texture defaultSpecular("../resources/textures/defaultSpecular.png", GL_REPEAT, GL_REPEAT, GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR);
+
     defaultTexture.use(0);
+    defaultSpecular.use(1);
 
     unsigned int VAO;
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
 
     float vertices[] = {
-        // positions          // colors           // texture coords
+        // positions          // normals           // texture coords
         ///back face
-        0.5f,  0.5f, -0.5f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
-        0.5f, -0.5f, -0.5f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
-       -0.5f, -0.5f, -0.5f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // bottom left
-       -0.5f,  0.5f, -0.5f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f,   // top left
+        0.5f,  0.5f, -0.5f,   0.0f, 0.0f, -1.0f,   1.0f, 1.0f,   // top right
+        0.5f, -0.5f, -0.5f,   0.0f, 0.0f, -1.0f,   1.0f, 0.0f,   // bottom right
+       -0.5f, -0.5f, -0.5f,   0.0f, 0.0f, -1.0f,   0.0f, 0.0f,   // bottom left
+       -0.5f,  0.5f, -0.5f,   0.0f, 0.0f, -1.0f,   0.0f, 1.0f,   // top left
         ///front face
-        0.5f,  0.5f, 0.5f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
-        0.5f, -0.5f, 0.5f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
+        0.5f,  0.5f, 0.5f,   0.0f, 0.0f, 1.0f,   1.0f, 1.0f,   // top right
+        0.5f, -0.5f, 0.5f,   0.0f, 0.0f, 1.0f,   1.0f, 0.0f,   // bottom right
        -0.5f, -0.5f, 0.5f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // bottom left
-       -0.5f,  0.5f, 0.5f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f,    // top left
+       -0.5f,  0.5f, 0.5f,   0.0f, 0.0f, 1.0f,   0.0f, 1.0f,    // top left
         ///left face
-        -0.5f,  0.5f, 0.5f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
-        -0.5f, -0.5f, 0.5f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
-       -0.5f, -0.5f, -0.5f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // bottom left
-       -0.5f,  0.5f, -0.5f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f,    // top left
+        -0.5f,  0.5f, 0.5f,   -1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
+        -0.5f, -0.5f, 0.5f,   -1.0f, 0.0f, 0.0f,   1.0f, 0.0f,   // bottom right
+       -0.5f, -0.5f, -0.5f,   -1.0f, 0.0f, 0.0f,   0.0f, 0.0f,   // bottom left
+       -0.5f,  0.5f, -0.5f,   -1.0f, 0.0f, 0.0f,   0.0f, 1.0f,    // top left
         ///right face
-        0.5f,  0.5f, 0.5f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
-        0.5f, -0.5f, 0.5f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
-        0.5f, -0.5f, -0.5f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // bottom left
-        0.5f,  0.5f, -0.5f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f,    // top left
+        0.5f,  0.5f, 0.5f,    1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
+        0.5f, -0.5f, 0.5f,    1.0f, 0.0f, 0.0f,   1.0f, 0.0f,   // bottom right
+        0.5f, -0.5f, -0.5f,   1.0f, 0.0f, 0.0f,   0.0f, 0.0f,   // bottom left
+        0.5f,  0.5f, -0.5f,   1.0f, 0.0f, 0.0f,   0.0f, 1.0f,    // top left
         ///bottom
-        0.5f, -0.5f, 0.5f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
-        0.5f, -0.5f, -0.5f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
-       -0.5f, -0.5f, -0.5f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // bottom left
-       -0.5f, -0.5f, 0.5f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f,   // top left
+        0.5f, -0.5f, 0.5f,   0.0f, -1.0f, 0.0f,   1.0f, 1.0f,   // top right
+        0.5f, -0.5f, -0.5f,  0.0f, -1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
+       -0.5f, -0.5f, -0.5f,  0.0f, -1.0f, 0.0f,   0.0f, 0.0f,   // bottom left
+       -0.5f, -0.5f, 0.5f,   0.0f, -1.0f, 0.0f,   0.0f, 1.0f,   // top left
         ///top
-        0.5f, 0.5f, 0.5f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
-        0.5f, 0.5f, -0.5f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
-       -0.5f, 0.5f, -0.5f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // bottom left
-       -0.5f, 0.5f, 0.5f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f   // top left
+        0.5f, 0.5f, 0.5f,   0.0f, 1.0f, 0.0f,   1.0f, 1.0f,   // top right
+        0.5f, 0.5f, -0.5f,  0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
+       -0.5f, 0.5f, -0.5f,  0.0f, 1.0f, 0.0f,   0.0f, 0.0f,   // bottom left
+       -0.5f, 0.5f, 0.5f,   0.0f, 1.0f, 0.0f,   0.0f, 1.0f   // top left
     };
     unsigned int indicies[] = {
         //back
@@ -139,29 +214,68 @@ int main() {
     glEnableVertexAttribArray(2);
 
     glEnable(GL_DEPTH_TEST);
+
+    static Camera camera;
+    _CAM = &camera;
+
+    //glfwSwapInterval(0);
     while(!glfwWindowShouldClose(window))
     {
+        float lastFrame;
+        float currentFrame = glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
         processInput(window);
 
-        glClearColor(0.f, 0.f, 0.2f, 0.0f);
+        glClearColor(.0f, .0f, .0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         //moves object to world space
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::rotate(model, (float)glfwGetTime() * glm::radians(-50.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-
-        //handles view space transformations
-        Camera camera;
-        camera.updateDirection();
+        model = glm::rotate(model, (float)glfwGetTime() * glm::radians(-50.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
         //projects coordinates to NDCs
         glm::mat4 projection;
-        projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
+        projection = glm::perspective(glm::radians(45.0f), aspect, 0.1f, 100.0f);
+        //projection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 19.9f);
         //projection = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, 0.0f, 10.0f);
 
+        defaultShader.use();
         defaultShader.setMat4fv("modelMatrix", model);
         defaultShader.setMat4fv("viewMatrix", camera.getView());
         defaultShader.setMat4fv("projectionMatrix", projection);
+
+        defaultShader.setVec3("viewPos", camera.cameraPos);
+        defaultShader.setInt("material.diffuse", 0);
+        defaultShader.setInt("material.specular", 1);
+        defaultShader.setFloat("material.shininess", 32.0f);
+        defaultShader.setVec3f("light.ambient",  0.1f, 0.1f, 0.1f);
+        defaultShader.setVec3f("light.diffuse",  0.9f, 0.9f, 0.9f); // darken diffuse light a bit
+        defaultShader.setVec3f("light.specular", 1.0f, 1.0f, 1.0f);
+        
+        //defaultShader.setVec3f("light.position", 1.2f, 2.0f, 2.0f);
+        
+        //defaultShader.setVec4f("light.descriptor", 1.2f, 2.0f, 2.0f, 1.f);
+        //defaultShader.setFloat("light.constant",  1.0f);
+        //defaultShader.setFloat("light.linear",    0.09f);
+        //defaultShader.setFloat("light.quadratic", 0.032f);
+
+        
+        defaultShader.setVec4("light.descriptor",  glm::vec4(camera.cameraPos, 1.0f));
+        defaultShader.setVec3("light.direction", camera.cameraFront);
+        defaultShader.setFloat("light.cutOff",   glm::cos(glm::radians(12.5f)));
+        defaultShader.setFloat("light.outerCutOff", glm::cos(glm::radians(17.5f)));
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+
+        lightShader.use();
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(1.2f, 2.0f, 2.0f));
+        model = glm::scale(model, glm::vec3(0.5f));
+        lightShader.setMat4fv("modelMatrix", model);
+        lightShader.setMat4fv("viewMatrix", camera.getView());
+        lightShader.setMat4fv("projectionMatrix", projection);
+        lightShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
         glfwPollEvents();
