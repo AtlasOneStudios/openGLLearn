@@ -19,6 +19,9 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     glViewport(0, 0, width, height);
     aspect = (float)width / height;
+    if (width == 0 || height == 0) {
+        aspect = 800.f/600.f;
+    }
 }
 
 static Camera* _CAM;
@@ -59,7 +62,7 @@ void processInput(GLFWwindow *window)
     const float cameraSpeed = 2.5f * deltaTime;
     if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         if (fullscreen == true) {
-            glfwSetWindowMonitor(window, NULL, 100, 100, 808, 600, GLFW_DONT_CARE);
+            glfwSetWindowMonitor(window, NULL, 100, 100, 800, 600, GLFW_DONT_CARE);
             fullscreen = !fullscreen;
         } else {
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
@@ -250,22 +253,36 @@ int main() {
         defaultShader.setInt("material.diffuse", 0);
         defaultShader.setInt("material.specular", 1);
         defaultShader.setFloat("material.shininess", 32.0f);
-        defaultShader.setVec3f("light.ambient",  0.1f, 0.1f, 0.1f);
-        defaultShader.setVec3f("light.diffuse",  0.9f, 0.9f, 0.9f); // darken diffuse light a bit
-        defaultShader.setVec3f("light.specular", 1.0f, 1.0f, 1.0f);
+        //defaultShader.setVec3f("dirLight.ambient",  0.1f, 0.1f, 0.1f);
+        //defaultShader.setVec3f("dirLight.diffuse",  0.9f, 0.9f, 0.9f); // darken diffuse light a bit
+        //defaultShader.setVec3f("dirLight.specular", 1.0f, 1.0f, 1.0f);
         
         //defaultShader.setVec3f("light.position", 1.2f, 2.0f, 2.0f);
-        
         //defaultShader.setVec4f("light.descriptor", 1.2f, 2.0f, 2.0f, 1.f);
         //defaultShader.setFloat("light.constant",  1.0f);
         //defaultShader.setFloat("light.linear",    0.09f);
         //defaultShader.setFloat("light.quadratic", 0.032f);
+        //defaultShader.setVec4("light.descriptor",  glm::vec4(camera.cameraPos, 1.0f));
+        //defaultShader.setVec3("light.direction", camera.cameraFront);
+        //defaultShader.setFloat("light.cutOff",   glm::cos(glm::radians(12.5f)));
+        //defaultShader.setFloat("light.outerCutOff", glm::cos(glm::radians(17.5f)));
 
-        
-        defaultShader.setVec4("light.descriptor",  glm::vec4(camera.cameraPos, 1.0f));
-        defaultShader.setVec3("light.direction", camera.cameraFront);
-        defaultShader.setFloat("light.cutOff",   glm::cos(glm::radians(12.5f)));
-        defaultShader.setFloat("light.outerCutOff", glm::cos(glm::radians(17.5f)));
+        defaultShader.setVec3f("pointLights[0].position", 1.2f, 2.0f, 2.0f);
+        defaultShader.setFloat("pointLights[0].constant",  1.0f);
+        defaultShader.setFloat("pointLights[0].linear",    0.09f);
+        defaultShader.setFloat("pointLights[0].quadratic", 0.032f);
+        defaultShader.setVec3f("pointLights[0].ambient", 0.1f, 0.1f, 0.1f);
+        defaultShader.setVec3f("pointLights[0].diffuse", 1.0f, 1.0f, 1.0f);
+        defaultShader.setVec3f("pointLights[0].specular", 1.0f, 1.0f, 1.0f);
+
+        defaultShader.setVec3f("pointLights[1].position", -1.2f, 2.0f, -2.0f);
+        defaultShader.setFloat("pointLights[1].constant",  1.0f);
+        defaultShader.setFloat("pointLights[1].linear",    0.09f);
+        defaultShader.setFloat("pointLights[1].quadratic", 0.032f);
+        defaultShader.setVec3f("pointLights[1].ambient", 0.3f, 0.2f, 0.0f);
+        defaultShader.setVec3f("pointLights[1].diffuse", 0.8f, 0.7f, 0.0f);
+        defaultShader.setVec3f("pointLights[1].specular", 1.0f, 1.0f, 0.0f);
+
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
         lightShader.use();
@@ -276,6 +293,15 @@ int main() {
         lightShader.setMat4fv("viewMatrix", camera.getView());
         lightShader.setMat4fv("projectionMatrix", projection);
         lightShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(-1.2f, 2.0f, -2.0f));
+        model = glm::scale(model, glm::vec3(0.5f));
+        lightShader.setMat4fv("modelMatrix", model);
+        lightShader.setMat4fv("viewMatrix", camera.getView());
+        lightShader.setMat4fv("projectionMatrix", projection);
+        lightShader.setVec3("lightColor", glm::vec3(0.8f, 1.7f, 0.0f));
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
         glfwPollEvents();
