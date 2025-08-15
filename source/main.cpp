@@ -54,7 +54,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 static float deltaTime;
 static GLFWmonitor* monitor;
 static bool fullscreen = false;
-static glm::vec3 velocity(0.0f, 0.0f, 0.0f);
+//static glm::vec3 velocity(0.0f, 0.0f, 0.0f);
 
 void processInput(GLFWwindow *window)
 {
@@ -87,15 +87,15 @@ void processInput(GLFWwindow *window)
         if (glfwGetKey(window, GLFW_KEY_F11) == GLFW_PRESS) {
             switch (fullscreen) {
                 case false:
-                    glfwSetWindowMonitor(window, monitor, 0, 0, 1920, 1080, GLFW_DONT_CARE); //lol me neither
+                    glfwSetWindowMonitor(window, monitor, 0, 0, 10, 10, GLFW_DONT_CARE); //lol me neither
                     fullscreen = !fullscreen;
                 case true:
                     break;
             }
         }
-        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && _CAM->cameraPos.y <= -1.f) {
-            velocity.y += 3.13 * 2;
-        }
+        /*if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && _CAM->cameraPos.y <= -1.f) {
+            velocity.y += (9.8 + 4.43);
+        }*/
 
     //_CAM->cameraPos.y = 0.0f;
 
@@ -305,19 +305,22 @@ int main() {
     camera.cameraPos = glm::vec3(0.0f, 3.0f, 0.0f);
     _CAM = &camera;
 
-    //glfwSwapInterval(0);
+    glfwSwapInterval(1);
     while(!glfwWindowShouldClose(window))
     {
         float lastFrame;
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
+        /*
+        if (camera.cameraPos.y != -1) velocity.y -= 9.8f;
 
-        velocity -= glm::vec3(0.0f, 9.8f/60, 0.0f);
+
+        std::cout << velocity.y << std::endl;
+
         camera.cameraPos += velocity * deltaTime;
-
-        if (camera.cameraPos.y  <= -1) {velocity = glm::vec3(0.0f, 0.0f, 0.0f); camera.cameraPos.y = -1;}
-
+        if (camera.cameraPos.y  <= -1) {velocity.y = 0.0f; camera.cameraPos.y = -1;}
+        */
         processInput(window);
 
         glClearColor(.0f, .0f, .0f, 0.0f);
@@ -334,9 +337,12 @@ int main() {
 
         //projects coordinates to NDCs
         glm::mat4 projection;
-        projection = glm::perspective(glm::radians(45.0f), aspect, 0.1f, 100.0f);
-        //projection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 19.9f);
+        //projection = glm::perspective(glm::radians(45.0f), aspect, 0.1f, 100.0f);
+        projection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 99.9f);
         //projection = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, 0.0f, 10.0f);
+        camera.pitch = -45.0f;
+        camera.yaw = 45.0f;
+        camera.updateDirection();
 
         defaultShader.use();
         defaultShader.setMat4fv("modelMatrix", model);
@@ -360,6 +366,11 @@ int main() {
         //defaultShader.setVec3("light.direction", camera.cameraFront);
         //defaultShader.setFloat("light.cutOff",   glm::cos(glm::radians(12.5f)));
         //defaultShader.setFloat("light.outerCutOff", glm::cos(glm::radians(17.5f)));
+
+        //defaultShader.setVec3f("dirLight.direction", 0.0f, -1.0f, 0.0f);
+        //defaultShader.setVec3f("dirLight.ambient", 0.0f, 0.0f, 0.0f);
+        //defaultShader.setVec3f("dirLight.diffuse", 0.0f, 0.4f, 0.0f);
+        //defaultShader.setVec3f("dirLight.specular", 1.0f, 1.0f, 1.0f);
 
         defaultShader.setVec3f("pointLights[0].position", 1.2f, 2.0f, 2.0f);
         defaultShader.setFloat("pointLights[0].constant",  1.0f);

@@ -53,7 +53,7 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath) {
         std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
     };
 
-    // vertex Shader
+    // frag Shader
     fragment = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragment, 1, &fShaderCode, NULL);
     glCompileShader(fragment);
